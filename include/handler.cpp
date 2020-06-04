@@ -31,7 +31,7 @@ Handler::Handler(
     :
         zcm_out( zcm_out ),
         zcm_viz( zcm_viz ),
-        tracker( NearestNeighborDistanceMetric( "euclidean", 64*0.8f, 100 ), 0.5, 10, 2 )
+        tracker( NearestNeighborDistanceMetric( "euclidean", 64*0.8f, 100 ), 0.5f, 10, 2 )
 {
     // application logic parameters
     float period_s;
@@ -125,7 +125,11 @@ void Handler::handleTrains(
         object_points3D.push_back( {-1*pt.y + width/2, 1*pt.z, 1*pt.x} );
     }
 
-    if ( mtx.size() != cv::Size( 3, 3 ) or object_points3D.size() == 0 ) return;
+    if ( mtx.size() != cv::Size( 3, 3 ) or object_points3D.size() == 0 ) 
+    {
+        view_frame( msg->service.u_timestamp );
+        return;
+    }
 
     std::vector< cv::Point2f > projected_points;
     cv::projectPoints( object_points3D, rvec, tvec, mtx, dist, projected_points);
@@ -150,8 +154,14 @@ void Handler::handleTrains(
         Detection detection(cv::Rect2f(x, y, width, height), 0.5, object_features);
         detections.push_back( detection );
 
+        cv::line( last_frame, cv::Point(x,y), cv::Point(x+width,y), 255, 4 );
+        cv::line( last_frame, cv::Point(x+width,y), cv::Point(x+width,y+height), 255, 4 );
+        cv::line( last_frame, cv::Point(x+width,y+height), cv::Point(x,y+height), 255, 4 );
+        cv::line( last_frame, cv::Point(x,y+height), cv::Point(x,y), 255, 4 );
+
     }
 
+    cv::cvtColor( last_frame, last_frame, cv::COLOR_GRAY2BGR );
     tracker.predict();
     tracker.update( detections );
 
@@ -180,13 +190,25 @@ void Handler::handleTrains(
         };
 
         tracked_image_pts.push_back( {bbox.x, bbox.y+bbox.height} );
-        tracked_image_pts.push_back( {bbox.x+bbox.width*0.5, bbox.y+bbox.height} );
+        tracked_image_pts.push_back( {bbox.x+bbox.width*0.5f, bbox.y+bbox.height} );
         tracked_image_pts.push_back( {bbox.x+bbox.width, bbox.y+bbox.height} );
-        cv::line( last_frame, pts[0], pts[1], 255, 3 );
-        cv::line( last_frame, pts[1], pts[2], 255, 3 );
-        cv::line( last_frame, pts[2], pts[3], 255, 3 );
-        cv::line( last_frame, pts[3], pts[0], 255, 3 );
+        // cv::line( last_frame, pts[0], pts[1], 255, 3 );
+        // cv::line( last_frame, pts[1], pts[2], 255, 3 );
+        // cv::line( last_frame, pts[2], pts[3], 255, 3 );
+        // cv::line( last_frame, pts[3], pts[0], 255, 3 );
+        cv::line( last_frame, pts[0], pts[1], cv::Scalar(0, 200, 255), 1 );
+        cv::line( last_frame, pts[1], pts[2], cv::Scalar(0, 200, 255), 1 );
+        cv::line( last_frame, pts[2], pts[3], cv::Scalar(0, 200, 255), 1 );
+        cv::line( last_frame, pts[3], pts[0], cv::Scalar(0, 200, 255), 1 );
+        cv::putText( last_frame, std::to_string(track.track_id) + " : " + std::to_string(track.age) + " : " + std::to_string(track.time_since_update), 
+                     pts[0], cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 200, 255), 2, cv::LINE_8 );
     }
+    cv::Mat temp;
+    cv::resize( last_frame, temp, last_frame.size()/2 );
+    cv::imshow( "track", temp );
+    cv::imwrite( "out/outimg_" + std::to_string(msg->service.u_timestamp) + ".png", temp );
+    cv::waitKey(30);
+    cv::cvtColor( last_frame, last_frame, cv::COLOR_BGR2GRAY );
 
     if ( tracked_image_pts.size() == 0 ) return;
     std::vector< cv::Point2f > tracked_object_pts;
@@ -227,6 +249,22 @@ void Handler::handleTrains(
     zcm_out->publish( channel+"FILT", &last_objects);
 
 };
+
+void Handler::view_frame( int64_t timestamp, std::vector< Detection > detections )
+{
+    if ( detections.empty() )
+    {
+        cv::Mat temp;
+        last_frame.copyTo( temp );
+        cv::resize( temp, temp, last_frame.size()/2 );
+        cv::imshow( "track", temp );
+        cv::imwrite( "../zcm_files/outimg/outimg_" + std::to_string(timestamp) + ".png", temp );
+        cv::waitKey(10);
+        // cv::cvtColor( last_frame, last_frame, cv::COLOR_BGR2GRAY );
+        return;
+    }
+}
+
 
 // void Handler::publish_info( std::string channel, std::string msg )
 // {

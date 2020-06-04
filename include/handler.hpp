@@ -72,6 +72,9 @@ private:
     ZcmObjectList last_objects;
 
     Tracker tracker;
+
+    void view_frame( int64_t timestamp,
+                     std::vector< Detection > detections = std::vector< Detection >() );
 };
 
 #endif

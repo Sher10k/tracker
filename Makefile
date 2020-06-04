@@ -5,7 +5,7 @@ cfg = ${PWD}/cfg/113/head_1
 VERSION = `git describe --tags`
 
 all: build
-	./tracker -c SL_config.yaml -p pid
+	./tracker -c SL_Ltrains_config.yaml -p pid
 
 build:
 	mkdir -p obj/
