@@ -12,7 +12,7 @@
 //#include "header/linear_assignment.h"
 
 
-#define INFTY_COST 1e+5f
+#define INFTY_COST 1e+10f
 
 class TrackDetectId 
 {

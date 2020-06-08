@@ -31,7 +31,7 @@ Handler::Handler(
     :
         zcm_out( zcm_out ),
         zcm_viz( zcm_viz ),
-        tracker( NearestNeighborDistanceMetric( "euclidean", 64*0.8f, 100 ), 0.5f, 10, 2 )
+        tracker( NearestNeighborDistanceMetric( "euclidean", 1.0e+08f, 100 ), 0.8f, 10, 2 )
 {
     // application logic parameters
     float period_s;
@@ -109,6 +109,9 @@ void Handler::handleTrains(
     const std::string& channel,
     const ZcmObjectList *msg )
 {
+    frame_idx++;
+    std::cout << "\nProcessing frame: " << frame_idx << " -------------------------------------------------- ///" << "\n";
+
     std::cout << "Train's count: " << msg->detected_objects.size() << "\n";
     last_objects = *msg;
 
@@ -119,18 +122,22 @@ void Handler::handleTrains(
         float width = obj.bounding_box.width;
         float height = obj.bounding_box.height;
 
-        object_points3D.push_back( {-1*pt.y - width/2, 1*pt.z, 1*pt.x} );
-        object_points3D.push_back( {-1*pt.y - width/2, 1*pt.z - height, 1*pt.x} );
-        object_points3D.push_back( {-1*pt.y + width/2, 1*pt.z - height, 1*pt.x} );
-        object_points3D.push_back( {-1*pt.y + width/2, 1*pt.z, 1*pt.x} );
+        object_points3D.push_back( {-1*float(pt.y) - width/2, 1*float(pt.z), 1*float(pt.x)} );
+        object_points3D.push_back( {-1*float(pt.y) - width/2, 1*float(pt.z) - height, 1*float(pt.x)} );
+        object_points3D.push_back( {-1*float(pt.y) + width/2, 1*float(pt.z) - height, 1*float(pt.x)} );
+        object_points3D.push_back( {-1*float(pt.y) + width/2, 1*float(pt.z), 1*float(pt.x)} );
     }
 
     if ( mtx.size() != cv::Size( 3, 3 ) or object_points3D.size() == 0 ) 
     {
-        view_frame( msg->service.u_timestamp );
+        // Производим предсказание
+        tracker.predict();
+        // Отображаем треки на кадре даже если не пришли объекты
+        view_track( msg->service.u_timestamp );
         return;
     }
 
+    // пересчитываем 3D объекты в 2D проекции на кадр
     std::vector< cv::Point2f > projected_points;
     cv::projectPoints( object_points3D, rvec, tvec, mtx, dist, projected_points);
     // std::cout << "Projected points:\n";
@@ -147,6 +154,7 @@ void Handler::handleTrains(
 
         if ( y+height >= last_frame.size().height or x+width >= last_frame.size().width or x < 0 or y < 0 ) continue;
 
+        //  преобразуем фрагмент изображения объекта в features
         cv::Mat object_img;
         last_frame(cv::Rect(x, y, width, height)).convertTo(object_img, CV_32F, 1.0/255);
         cv::resize(object_img, object_img, cv::Size(64, 64));
@@ -154,18 +162,21 @@ void Handler::handleTrains(
         Detection detection(cv::Rect2f(x, y, width, height), 0.5, object_features);
         detections.push_back( detection );
 
+        // отрисовываем спроецированные объекты на кадре
         cv::line( last_frame, cv::Point(x,y), cv::Point(x+width,y), 255, 4 );
         cv::line( last_frame, cv::Point(x+width,y), cv::Point(x+width,y+height), 255, 4 );
         cv::line( last_frame, cv::Point(x+width,y+height), cv::Point(x,y+height), 255, 4 );
         cv::line( last_frame, cv::Point(x,y+height), cv::Point(x,y), 255, 4 );
-
     }
 
-    cv::cvtColor( last_frame, last_frame, cv::COLOR_GRAY2BGR );
+    // Делаем предсказание на 1 кадр и обновляем треки
     tracker.predict();
     tracker.update( detections );
 
-    std::vector< std::vector< float > > results;
+    // Отрисовыеваем треки после предсказания и обновления
+    view_track( msg->service.u_timestamp );
+
+    // std::vector< std::vector< float > > results;
     std::vector< cv::Point2f > tracked_image_pts;
     std::cout << "Track size: " << tracker.tracks.size() << "\n";
     for ( auto track : tracker.tracks )
@@ -173,46 +184,31 @@ void Handler::handleTrains(
         if ( (not track.is_confirmed()) || (track.time_since_update > 1) )
             continue;
         cv::Rect2f bbox = track.to_tlwh();
-        results.push_back( { float(1), 
-                             float(track.track_id), 
-                             bbox.x, 
-                             bbox.y, 
-                             bbox.width, 
-                             bbox.height,
-                             1, -1, -1, -1} );
-        std::cout << bbox << "\n";
+        // results.push_back( { float(1), 
+        //                      float(track.track_id), 
+        //                      bbox.x, 
+        //                      bbox.y, 
+        //                      bbox.width, 
+        //                      bbox.height,
+        //                      1, -1, -1, -1} );
+        std::cout << "bbox: \n" << bbox << "\n";
 
-        std::vector< cv::Point2f > pts = {
-            {bbox.x, bbox.y},
-            {bbox.x+bbox.width, bbox.y},
-            {bbox.x+bbox.width, bbox.y+bbox.height},
-            {bbox.x, bbox.y+bbox.height}
-        };
+        // std::vector< cv::Point2f > pts = {
+        //     {bbox.x, bbox.y},
+        //     {bbox.x+bbox.width, bbox.y},
+        //     {bbox.x+bbox.width, bbox.y+bbox.height},
+        //     {bbox.x, bbox.y+bbox.height}
+        // };
 
+        // 3 точки основания объекта
         tracked_image_pts.push_back( {bbox.x, bbox.y+bbox.height} );
         tracked_image_pts.push_back( {bbox.x+bbox.width*0.5f, bbox.y+bbox.height} );
         tracked_image_pts.push_back( {bbox.x+bbox.width, bbox.y+bbox.height} );
-        // cv::line( last_frame, pts[0], pts[1], 255, 3 );
-        // cv::line( last_frame, pts[1], pts[2], 255, 3 );
-        // cv::line( last_frame, pts[2], pts[3], 255, 3 );
-        // cv::line( last_frame, pts[3], pts[0], 255, 3 );
-        cv::line( last_frame, pts[0], pts[1], cv::Scalar(0, 200, 255), 1 );
-        cv::line( last_frame, pts[1], pts[2], cv::Scalar(0, 200, 255), 1 );
-        cv::line( last_frame, pts[2], pts[3], cv::Scalar(0, 200, 255), 1 );
-        cv::line( last_frame, pts[3], pts[0], cv::Scalar(0, 200, 255), 1 );
-        cv::putText( last_frame, std::to_string(track.track_id) + " : " + std::to_string(track.age) + " : " + std::to_string(track.time_since_update), 
-                     pts[0], cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 200, 255), 2, cv::LINE_8 );
     }
-    cv::Mat temp;
-    cv::resize( last_frame, temp, last_frame.size()/2 );
-    cv::imshow( "track", temp );
-    cv::imwrite( "out/outimg_" + std::to_string(msg->service.u_timestamp) + ".png", temp );
-    cv::waitKey(30);
-    cv::cvtColor( last_frame, last_frame, cv::COLOR_BGR2GRAY );
 
     if ( tracked_image_pts.size() == 0 ) return;
     std::vector< cv::Point2f > tracked_object_pts;
-    std::cout << H << "\n";
+    // std::cout << "H: \n" << H << "\n";
     cv::perspectiveTransform( tracked_image_pts, tracked_object_pts, H );
         
     int32_t obj_count;
@@ -243,25 +239,73 @@ void Handler::handleTrains(
         obj.bounding_box = box;
         last_objects.detected_objects.push_back(obj);
 
-        std::cout << tracked_object_pts[i] << " " << tracked_object_pts[i+1] << " " << tracked_object_pts[i+2] << "\n";
+        // std::cout << "tracked_object_pts_" << int(i/3) << ": " 
+        //           << tracked_object_pts[i] << " " 
+        //           << tracked_object_pts[i+1] << " " 
+        //           << tracked_object_pts[i+2] << "\n";
     }
 
     zcm_out->publish( channel+"FILT", &last_objects);
-
 };
 
-void Handler::view_frame( int64_t timestamp, std::vector< Detection > detections )
+// отрисовка треков при поступлении или отсутствии объектов
+void Handler::view_track( int64_t timestamp )
 {
-    if ( detections.empty() )
+    if ( !last_frame.empty() )
     {
         cv::Mat temp;
         last_frame.copyTo( temp );
+        cv::cvtColor( temp, temp, cv::COLOR_GRAY2BGR );
+
+        for ( auto track : tracker.tracks )
+        {
+            if ( track.is_tentative() )
+            {
+                cv::Rect2f bbox = track.to_tlwh();
+                std::vector< cv::Point2f > pts = {
+                    {bbox.x, bbox.y},
+                    {bbox.x+bbox.width, bbox.y},
+                    {bbox.x+bbox.width, bbox.y+bbox.height},
+                    {bbox.x, bbox.y+bbox.height}
+                };
+                
+                // отрисовываем голубым треки, их ID : age : time_since_update
+                cv::Scalar Color = cv::Scalar(255,100,0);
+                cv::line( temp, pts[0], pts[1], Color, 1 );
+                cv::line( temp, pts[1], pts[2], Color, 1 );
+                cv::line( temp, pts[2], pts[3], Color, 1 );
+                cv::line( temp, pts[3], pts[0], Color, 1 );
+                cv::putText( temp, std::to_string(track.track_id) + " : " + std::to_string(track.age) + " : " + std::to_string(track.time_since_update), 
+                             pts[0], cv::FONT_HERSHEY_SIMPLEX, 1, Color, 2, cv::LINE_8 );
+            }
+            else if ( track.is_confirmed() )// || (track.time_since_update > 1) )
+            {
+                cv::Rect2f bbox = track.to_tlwh();
+                // std::cout << "bbox: \n" << bbox << "\n";
+
+                std::vector< cv::Point2f > pts = {
+                    {bbox.x, bbox.y},
+                    {bbox.x+bbox.width, bbox.y},
+                    {bbox.x+bbox.width, bbox.y+bbox.height},
+                    {bbox.x, bbox.y+bbox.height}
+                };
+                
+                // отрисовываем желтым треки, их ID : age : time_since_update
+                cv::Scalar Color = cv::Scalar(0, int((255 / tracker.max_age) * track.time_since_update), 255);
+                cv::line( temp, pts[0], pts[1], Color, 1 );
+                cv::line( temp, pts[1], pts[2], Color, 1 );
+                cv::line( temp, pts[2], pts[3], Color, 1 );
+                cv::line( temp, pts[3], pts[0], Color, 1 );
+                cv::putText( temp, std::to_string(track.track_id) + " : " + std::to_string(track.age) + " : " + std::to_string(track.time_since_update), 
+                             pts[0], cv::FONT_HERSHEY_SIMPLEX, 1, Color, 2, cv::LINE_8 );
+            }
+        }
+        cv::putText( temp, std::to_string(frame_idx), cv::Point(0, 100), 
+                     cv::FONT_HERSHEY_SIMPLEX, 3, cv::Scalar(0,0,255), 3, cv::LINE_8 );
         cv::resize( temp, temp, last_frame.size()/2 );
         cv::imshow( "track", temp );
         cv::imwrite( "../zcm_files/outimg/outimg_" + std::to_string(timestamp) + ".png", temp );
         cv::waitKey(10);
-        // cv::cvtColor( last_frame, last_frame, cv::COLOR_BGR2GRAY );
-        return;
     }
 }
 

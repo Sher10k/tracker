@@ -73,8 +73,9 @@ private:
 
     Tracker tracker;
 
-    void view_frame( int64_t timestamp,
-                     std::vector< Detection > detections = std::vector< Detection >() );
+    int frame_idx = 0;
+
+    void view_track( int64_t timestamp );
 };
 
 #endif
