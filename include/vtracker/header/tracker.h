@@ -9,7 +9,6 @@
 #include "nn_matching.h"
 #include "track.h"
 #include "Hungarian.h"
-//#include "header/linear_assignment.h"
 
 
 #define INFTY_COST 1e+10f
@@ -285,7 +284,7 @@ public:
 private:
     int _next_id;
     
-    TrackDetectId _match( std::vector< Detection > detections ); 
+    TrackDetectId _match( std::vector< Detection > & detections ); 
     void _initiate_track( Detection detection );
 };
 

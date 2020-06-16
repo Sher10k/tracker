@@ -116,7 +116,7 @@ public:
      *      The bounding box.
      */
     
-    void predict( KalmanFilter kf );
+    void predict( KalmanFilter & kf );
     /** @brief
      *  Propagate the state distribution to the current time step using a
      *  Kalman filter prediction step.

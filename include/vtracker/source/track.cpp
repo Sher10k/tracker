@@ -1,4 +1,4 @@
-#include "track.h"
+#include "../header/track.h"
 
 Track::Track( Eigen::Matrix< float, 1, 8 > _mean, 
               Eigen::Matrix< float, 8, 8 > _covariance, 
@@ -40,7 +40,7 @@ cv::Rect2f Track::to_tlbr()
     return ret;
 }
 
-void Track::predict( KalmanFilter kf )
+void Track::predict( KalmanFilter & kf )
 {
 //    std::cout << "// --- mean_1: \n" << this->mean << "\n";
 //    std::cout << "// --- covariance_1: \n" << this->covariance << "\n";

@@ -1,4 +1,4 @@
-#include "nn_matching.h"
+#include "../header/nn_matching.h"
 
 Eigen::ArrayXXf _pdist( std::vector< std::vector< float > > _a, 
                         std::vector< std::vector< float > > _b )

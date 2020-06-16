@@ -1,4 +1,4 @@
-#include "tracker.h"
+#include "../header/tracker.h"
 
 TrackDetectId::TrackDetectId() { }
 
@@ -28,7 +28,7 @@ void Tracker::predict()
 {
 //    std::cout << "// --- f --- tracks.predict() \n";
     for ( Track &track : this->tracks )
-        track.predict(this->kf);
+        track.predict( this->kf );
 }
 
 void Tracker::update( std::vector< Detection > detections )
@@ -272,8 +272,8 @@ TrackDetectId Tracker::min_cost_matching_gm( float max_distance,
                                                  detections, 
                                                  track_indices, 
                                                  detection_indices );
-   std::cout << "// --- _cost_matrix_gm[ " << _cost_matrix.rows() << " x " 
-             << _cost_matrix.cols() << " ]: \n" << _cost_matrix << "\n\n";
+//    std::cout << "// --- _cost_matrix[ " << _cost_matrix.rows() << " x " 
+//              << _cost_matrix.cols() << " ]: \n" << _cost_matrix << "\n\n";
     
     std::vector< std::vector< double > > cost_matrix;
     for ( unsigned i = 0; i < _cost_matrix.rows(); i++ )
@@ -288,13 +288,13 @@ TrackDetectId Tracker::min_cost_matching_gm( float max_distance,
         }
         cost_matrix.push_back( cost_matrix_row );
     }
-   std::cout << "// --- cost_matrix_gm[ " << cost_matrix.size() << " x " << cost_matrix.front().size() << " ]: \n";
-   for ( auto i : cost_matrix )
-   {
-       for ( auto j : i )
-           std::cout << j << ", ";
-       std::cout << "\n";
-   }
+//    std::cout << "// --- cost_matrix[ " << cost_matrix.size() << " x " << cost_matrix.front().size() << " ]: \n";
+//    for ( auto i : cost_matrix )
+//    {
+//        for ( auto j : i )
+//            std::cout << j << ", ";
+//        std::cout << "\n";
+//    }
     
     // --- Using the Hungarian algorithm, we look for the best "indices" for "cost_matrix".
     HungarianAlgorithm HungAlgo;
@@ -312,9 +312,9 @@ TrackDetectId Tracker::min_cost_matching_gm( float max_distance,
 //    for ( auto it = indices.begin(); it < indices.end(); it++ )
 //        if ( (*it) < 0 )
 //            it = indices.erase(it);                                         // --- ERROR 0.0.9
-   // std::cout << "// --- indices_gm[ " << indices.size() << " x 2 ]: \n";
-   // for ( size_t i = 0; i < indices.size(); i++ )
-   //     std::cout << "[ " << indices_id.at(i) << ", " << indices.at(i) << " ]\n";
+//    std::cout << "// --- indices_1[ " << indices.size() << " x 2 ]: \n";
+//    for ( size_t i = 0; i < indices.size(); i++ )
+//        std::cout << "[ " << indices_id.at(i) << ", " << indices.at(i) << " ]\n";
     
     
     TrackDetectId track_detect_id;
@@ -375,8 +375,8 @@ TrackDetectId Tracker::min_cost_matching_ic( float max_distance,
                                              track_indices, 
                                              detection_indices );       // <-- ERROR 0.0.1
 //    float temp = _cost_matrix( 16, 3 );
-   std::cout << "// --- _cost_matrix_ic[ " << _cost_matrix.rows() << " x " 
-   << _cost_matrix.cols() << " ]: \n" << _cost_matrix << "\n\n";
+//    std::cout << "// --- _cost_matrix[ " << _cost_matrix.rows() << " x " 
+//    << _cost_matrix.cols() << " ]: \n" << _cost_matrix << "\n\n";
     
     std::vector< std::vector< double > > cost_matrix;
     for ( unsigned i = 0; i < _cost_matrix.rows(); i++ )
@@ -391,13 +391,13 @@ TrackDetectId Tracker::min_cost_matching_ic( float max_distance,
         }
         cost_matrix.push_back( cost_matrix_row );
     }
-   std::cout << "// --- cost_matrix_ic[ " << cost_matrix.size() << " x " << cost_matrix.front().size() << " ]: \n";
-   for ( auto i : cost_matrix )
-   {
-       for ( auto j : i )
-           std::cout << j << ", ";
-       std::cout << "\n";
-   }
+//    std::cout << "// --- cost_matrix[ " << cost_matrix.size() << " x " << cost_matrix.front().size() << " ]: \n";
+//    for ( auto i : cost_matrix )
+//    {
+//        for ( auto j : i )
+//            std::cout << j << ", ";
+//        std::cout << "\n";
+//    }
     
     // --- Using the Hungarian algorithm, we look for the best "indices" for "cost_matrix".
     HungarianAlgorithm HungAlgo;
@@ -415,9 +415,9 @@ TrackDetectId Tracker::min_cost_matching_ic( float max_distance,
 //    for ( auto it = indices.begin(); it <= indices.end(); it++ )
 //        if ( (*it) < 0 )
 //            it = indices.erase(it);                                         // --- ERROR 0.0.9
-   // std::cout << "// --- indices_ic[ " << indices.size() << " x 2 ]: \n";
-   // for ( size_t i = 0; i < indices.size(); i++ )
-   //     std::cout << "[ " << indices_id.at(i) << ", " << indices.at(i) << " ]\n";
+//    std::cout << "// --- indices_2[ " << indices.size() << " x 2 ]: \n";
+//    for ( size_t i = 0; i < indices.size(); i++ )
+//        std::cout << "[ " << indices_id.at(i) << ", " << indices.at(i) << " ]\n";
     
     
     TrackDetectId track_detect_id;
@@ -561,7 +561,7 @@ TrackDetectId Tracker::matching_cascade( float max_distance,
     return track_detect_id;
 }
 
-TrackDetectId Tracker::_match( std::vector< Detection > detections )
+TrackDetectId Tracker::_match( std::vector< Detection > & detections )
 {
     // --- Split track set into confirmed and unconfirmed tracks.
 //    std::cout << "\n// --- 0 --- Split track set into confirmed and unconfirmed tracks.\n";

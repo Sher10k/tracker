@@ -20,6 +20,7 @@
 // STD
 #include <string>
 #include <iostream>
+#include <fstream>
 #include <ctime>
 #include <map>
 #include <vector>          // std::priority_queue
@@ -32,6 +33,7 @@ public:
         const cv::FileStorage& config,
         zcm::ZCM* zcm_out,
         bool verbose=false);
+    ~Handler();
 
     void handleCamera(
         const zcm::ReceiveBuffer*,
@@ -74,6 +76,7 @@ private:
     Tracker tracker;
 
     int frame_idx = 0;
+    std::ofstream out;
 
     void view_track( int64_t timestamp );
 };

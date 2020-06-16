@@ -1,27 +1,27 @@
 #include "handler.hpp"
 
 // ZCM
-#include <zcm/zcm-cpp.hpp>
-#include "zcm_types/ZcmCameraBaslerJpegFrame.hpp"
-#include "zcm_types/ZcmRailDetectorMask.hpp"
-#include "zcm_types/ZcmTextData.hpp"
+// #include <zcm/zcm-cpp.hpp>
+// #include "zcm_types/ZcmCameraBaslerJpegFrame.hpp"
+// #include "zcm_types/ZcmRailDetectorMask.hpp"
+// #include "zcm_types/ZcmTextData.hpp"
 
-// Tracker
-#include "vtracker/header/tracker.h"
+// // Tracker
+// #include "vtracker/header/tracker.h"
 
-// Computer vision
-#include <opencv2/highgui.hpp>
-#include <opencv2/core.hpp>
-#include <opencv2/calib3d.hpp>
-#include <opencv2/imgproc.hpp>
+// // Computer vision
+// #include <opencv2/highgui.hpp>
+// #include <opencv2/core.hpp>
+// #include <opencv2/calib3d.hpp>
+// #include <opencv2/imgproc.hpp>
 
-// STD
-#include <string>
-#include <iostream>
-#include <ctime>
-#include <map>
-#include <vector>          // std::priority_queue
-#include <sstream>
+// // STD
+// #include <string>
+// #include <iostream>
+// #include <ctime>
+// #include <map>
+// #include <vector>          // std::priority_queue
+// #include <sstream>
 
 
 Handler::Handler(
@@ -37,7 +37,12 @@ Handler::Handler(
     float period_s;
     config["period"] >> period_s;
     periodic_ts = int64_t( periodic_ts*std::pow( 10, 6 ) );
+    // out.open("/home/roman/TEMP/tracker_deep_sort/Ltrains/2005231850_zcm_4/2005231850_zcm_4.txt");
 };
+Handler::~Handler()
+{
+    // out.close();
+}
 
 void Handler::handleCamera(
     const zcm::ReceiveBuffer*,
@@ -57,6 +62,7 @@ void Handler::handleCamera(
         msg->jpeg.data() + msg->jpeg.size() );
 
     last_frame = cv::imdecode( jpeg_buf, cv::IMREAD_GRAYSCALE );
+    // std::cout << last_frame.size() << "\n";
     int64_t last_railway_ts = msg->service.u_timestamp;
 
     if ( last_frame.size() == cv::Size( 0, 0 ) ) return;
@@ -112,6 +118,16 @@ void Handler::handleTrains(
     frame_idx++;
     std::cout << "\nProcessing frame: " << frame_idx << " -------------------------------------------------- ///" << "\n";
 
+    // size_t leni = to_string(frame_idx).length();
+    // if ( leni == 1 )
+    //     cv::imwrite( "/home/roman/TEMP/tracker_deep_sort/Ltrains/2005231850_zcm_4/img1/00000" + to_string(frame_idx) + ".png", last_frame );
+    // if ( leni == 2 )
+    //     cv::imwrite( "/home/roman/TEMP/tracker_deep_sort/Ltrains/2005231850_zcm_4/img1/0000" + to_string(frame_idx) + ".png", last_frame );
+    // if ( leni == 3 )
+    //     cv::imwrite( "/home/roman/TEMP/tracker_deep_sort/Ltrains/2005231850_zcm_4/img1/000" + to_string(frame_idx) + ".png", last_frame );
+    // if ( leni == 4 )
+    //     cv::imwrite( "/home/roman/TEMP/tracker_deep_sort/Ltrains/2005231850_zcm_4/img1/00" + to_string(frame_idx) + ".png", last_frame );
+
     std::cout << "Train's count: " << msg->detected_objects.size() << "\n";
     last_objects = *msg;
 
@@ -161,6 +177,15 @@ void Handler::handleTrains(
         std::vector< float > object_features( object_img.data, object_img.data + object_img.total() );
         Detection detection(cv::Rect2f(x, y, width, height), 0.5, object_features);
         detections.push_back( detection );
+
+        // Временная запись объектов в файл 
+        // out << frame_idx << "," 
+        //     << -1 << "," 
+        //     << x << "," << y << "," << width << "," << height << ","
+        //     << 1 << "," << -1 << "," << -1 << "," << -1;
+        // for ( float feature : object_features )
+        //     out << "," << feature; 
+        // out << "\n";
 
         // отрисовываем спроецированные объекты на кадре
         cv::line( last_frame, cv::Point(x,y), cv::Point(x+width,y), 255, 4 );
@@ -304,7 +329,7 @@ void Handler::view_track( int64_t timestamp )
                      cv::FONT_HERSHEY_SIMPLEX, 3, cv::Scalar(0,0,255), 3, cv::LINE_8 );
         cv::resize( temp, temp, last_frame.size()/2 );
         cv::imshow( "track", temp );
-        cv::imwrite( "../zcm_files/outimg/outimg_" + std::to_string(timestamp) + ".png", temp );
+        // cv::imwrite( "../zcm_files/outimg/outimg_" + std::to_string(timestamp) + ".png", temp );
         cv::waitKey(10);
     }
 }
