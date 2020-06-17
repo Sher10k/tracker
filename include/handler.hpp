@@ -76,6 +76,7 @@ private:
     ZcmObjectList last_objects;
 
     Tracker tracker;
+    bool visualisation;
 
     int frame_idx = 0;
     std::ofstream out;

@@ -36,12 +36,22 @@ Handler::Handler(
     // Output tracker channel 
     config["tracker_channel"] >> output_channel;
     std::cout << "Output tracker channel: " << output_channel << "\n";
+    // Visualization options
+    config["visualisation"] >> visualisation;
+    std::cout << "visualisation: " << visualisation << "\n";
+    // Tracker config
+    // std::string metric;
+    // config["metric"] >> metric;
+    // std::cout << "metric: " << metric << "\n";
+
+    // auto tracker = Tracker( NearestNeighborDistanceMetric( "euclidean", 1.0e+08f, 100 ), 0.8f, 10, 2 );
+
     // application logic parameters
     float period_s;
     config["period"] >> period_s;
     periodic_ts = int64_t( periodic_ts*std::pow( 10, 6 ) );
     // out.open("/home/roman/TEMP/tracker_deep_sort/Ltrains/2005231850_zcm_4/2005231850_zcm_4.txt");
-};
+}
 Handler::~Handler()
 {
     // out.close();
@@ -101,7 +111,7 @@ void Handler::handleCamera(
     H = cv::getPerspectiveTransform(imgPoints, ground_pts);
 
     return;
-};
+}
 
 ZcmPoint create_zcm_point( float x, float y, float z )
 {
@@ -152,7 +162,7 @@ void Handler::handleTrains(
         // Производим предсказание
         tracker.predict();
         // Отображаем треки на кадре даже если не пришли объекты
-        view_track( msg->service.u_timestamp );
+        if (visualisation) view_track( msg->service.u_timestamp );
         return;
     }
 
@@ -202,9 +212,8 @@ void Handler::handleTrains(
     tracker.update( detections );
 
     // Отрисовыеваем треки после предсказания и обновления
-    view_track( msg->service.u_timestamp );
+    if (visualisation) view_track( msg->service.u_timestamp );
 
-    // std::vector< std::vector< float > > results;
     std::vector< cv::Point2f > tracked_image_pts;
     std::cout << "Track size: " << tracker.tracks.size() << "\n";
     for ( auto track : tracker.tracks )
@@ -212,13 +221,6 @@ void Handler::handleTrains(
         if ( (not track.is_confirmed()) || (track.time_since_update > 1) )
             continue;
         cv::Rect2f bbox = track.to_tlwh();
-        // results.push_back( { float(1), 
-        //                      float(track.track_id), 
-        //                      bbox.x, 
-        //                      bbox.y, 
-        //                      bbox.width, 
-        //                      bbox.height,
-        //                      1, -1, -1, -1} );
         std::cout << "bbox: \n" << bbox << "\n";
 
         // std::vector< cv::Point2f > pts = {
@@ -274,7 +276,7 @@ void Handler::handleTrains(
     }
 
     zcm_out->publish(output_channel, &last_objects);
-};
+}
 
 // отрисовка треков при поступлении или отсутствии объектов
 void Handler::view_track( int64_t timestamp )

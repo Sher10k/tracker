@@ -8,4 +8,7 @@ camera_channel: "LCamera"
 object_channel: "LObstacleTrains"
 tracker_channel: "Tracker_out"
 
+# Visualization: 1 - ON, 0 - OFF
+visualisation: 0
+
 period: 0.5

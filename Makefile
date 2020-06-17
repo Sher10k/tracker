@@ -1,14 +1,13 @@
 CXX_FLAGS = -lzcm `pkg-config --libs --cflags opencv4`
 
-cfg = ${PWD}/cfg/113/head_1
+cfg = ${PWD}/config
 
 TARGET = tracker
 
 VERSION = `git describe --tags`
 
 all: build
-# 	./${TARGET} -c SL_config.yaml -p pid
-	./${TARGET} -c SL_Ltrains_config.yaml -p pid
+	./${TARGET} -c ${cfg}/SL_config.yaml -p ${PWD}/pid
 
 rebuild: clean build
 
@@ -20,9 +19,7 @@ build:
 	find -name "*.gch" -exec rm -rf {} +
 
 run:
-# 	./${TARGET} -c SL_config.yaml -p pid
-	./${TARGET} -c SL_Ltrains_config.yaml -p pid
-# 	./${TARGET} --config=${cfg}/LL_config.yaml
+	./${TARGET} -c ${cfg}/SL_config.yaml -p ${PWD}/pid
 
 clean:
 	rm -rf obj/
