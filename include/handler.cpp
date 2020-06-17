@@ -33,6 +33,9 @@ Handler::Handler(
         zcm_viz( zcm_viz ),
         tracker( NearestNeighborDistanceMetric( "euclidean", 1.0e+08f, 100 ), 0.8f, 10, 2 )
 {
+    // Output tracker channel 
+    config["tracker_channel"] >> output_channel;
+    std::cout << "Output tracker channel: " << output_channel << "\n";
     // application logic parameters
     float period_s;
     config["period"] >> period_s;
@@ -270,7 +273,7 @@ void Handler::handleTrains(
         //           << tracked_object_pts[i+2] << "\n";
     }
 
-    zcm_out->publish( channel+"FILT", &last_objects);
+    zcm_out->publish(output_channel, &last_objects);
 };
 
 // отрисовка треков при поступлении или отсутствии объектов

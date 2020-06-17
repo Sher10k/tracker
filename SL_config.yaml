@@ -6,5 +6,6 @@ output_addres: "ipc"
 
 camera_channel: "LCamera"
 object_channel: "LObstacleTrains"
+tracker_channel: "Tracker_out"
 
 period: 0.5

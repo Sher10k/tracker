@@ -68,6 +68,8 @@ private:
     zcm::ZCM* zcm_out;
     zcm::ZCM* zcm_viz;
 
+    std::string output_channel;
+
     cv::Mat mtx, dist, rvec, tvec;
     cv::Mat last_frame;
     cv::Mat H;
